@@ -54,22 +54,28 @@ def processAFLData(source):
         teams_df[('Performance_Last_' + str(n))] = teamGroups['Performance'].transform(lambda x: x.rolling(n,1).mean().shift())
 
     # Put the data back together so that each row corresponds to a game with a home and away team
-    # Start by separating home and away teams and adding 'Home' or 'Away' prefix to column names
-    teams_df = teams_df.drop(columns = ['PointsAgainst', 'Performance'])
-    unchangedCols = ['Game', 'Season', 'Date', 'Round', 'Winner', 'Home/Away']
-    oldColNames = [name for name in teams_df.columns if name not in unchangedCols]
+    teams_df = teams_df.drop(columns = ['PointsAgainst', 'Performance', 'PointsBy'])
 
-    homeStats = teams_df[teams_df['Home/Away'] == 'Home'].drop(columns = ['Home/Away'])
-    homeStats = homeStats.rename(columns = dict(zip(oldColNames, ['Home_' + name for name in oldColNames])))
+    # Get the columns that we keep and the ones we'll take the differences of
+    unchangedCols = ['Game', 'Season', 'Date', 'Round', 'Winner', 'Home/Away', 'Team']
+    diffCols = [name for name in teams_df.columns if name not in unchangedCols]
+
+    # Get the home teams
+    matchStats = teams_df[teams_df['Home/Away'] == 'Home'].drop(columns = ['Home/Away'])
+    matchStats = matchStats.rename(columns = {'Team':'HomeTeam'})
+
+    # Get the away teams
     awayStats = teams_df[teams_df['Home/Away'] == 'Away'].drop(columns = ['Home/Away'])
-    awayStats = awayStats.rename(columns = dict(zip(oldColNames, ['Away_' + name for name in oldColNames])))
 
-    matchStats = pd.merge(homeStats, awayStats, on = ['Game', 'Season', 'Date', 'Round', 'Winner'])
-    
+    # Add the away team names
+    matchStats.insert(5, "AwayTeam", awayStats['Team'].to_numpy())
+
+    # Subtract the away team stats from the home team stats
+    matchStats[diffCols] = matchStats[diffCols] - awayStats[diffCols].to_numpy()
+
     return matchStats
 
-
-matchStats = processAFLData('afl_matches.csv')
-matchStats.to_csv('afl_stats.csv', index=False)
+afl_stats = processAFLData('afl_matches.csv')
+afl_stats.to_csv('afl_stats2.csv', index=False)
 
 
