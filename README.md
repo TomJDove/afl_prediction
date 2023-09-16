@@ -1,4 +1,4 @@
-# afl_prediction
+# AFL Match Prediction
 
 In this project I train a machine learning model to predict the outcome of AFL matches. 
 
